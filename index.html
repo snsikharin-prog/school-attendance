@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบบเช็กชื่อเข้าเรียน (ONE UI)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ONE UI & Pastel Theme */
+:root {
+  --bg: #F5F7FA;
+  --surface: #FFFFFF;
+  --primary: #85C8A6; /* Pastel Green */
+  --primary-dark: #6eb591;
+  --secondary: #FFF3D6; /* Pastel Cream */
+  --accent: #FFC4D9; /* Pastel Pink */
+  --text-main: #1F2937;
+  --text-muted: #6B7280;
+  --border: #E5E7EB;
+  --radius-lg: 26px;
+  --radius-md: 16px;
+  --shadow: 0 8px 24px rgba(0,0,0,0.04);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text-main); font-family: "Noto Sans Thai", sans-serif; -webkit-tap-highlight-color: transparent; }
+
+/* App Bar & Tabs */
+.header { padding: 40px 24px 20px; text-align: left; }
+.header h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+.tabs { display: flex; gap: 8px; padding: 0 24px; margin-bottom: 20px; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { padding: 12px 24px; border-radius: 99px; background: transparent; color: var(--text-muted); font-weight: 700; border: none; font-size: 16px; transition: 0.2s; cursor: pointer; white-space: nowrap; }
+.tab.active { background: var(--text-main); color: #fff; }
+
+.container { width: 100%; max-width: 800px; margin: 0 auto; padding: 0 16px 40px; }
+.view-section { display: none; animation: fadeIn 0.3s ease; }
+.view-section.active { display: block; }
+
+/* Cards & Inputs */
+.card { background: var(--surface); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.card-header { margin-bottom: 20px; }
+.card-title { font-size: 18px; font-weight: 700; margin: 0; }
+.card-subtitle { font-size: 13px; color: var(--text-muted); margin: 4px 0 0; }
+
+.field-group { margin-bottom: 20px; }
+.field-group:last-child { margin-bottom: 0; }
+.label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-main); }
+.input, .select { width: 100%; padding: 16px; border-radius: var(--radius-md); border: 1.5px solid var(--border); background: var(--bg); font-family: inherit; font-size: 15px; outline: none; transition: 0.2s; }
+.input:focus, .select:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(133,200,166,0.2); }
+
+/* Horizontal Scroll Chips for Subjects & Status */
+.chip-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+.chip-scroll::-webkit-scrollbar { display: none; }
+.chip-label { position: relative; flex-shrink: 0; }
+.chip-label input { position: absolute; opacity: 0; }
+.chip-box { display: flex; align-items: center; padding: 12px 20px; border-radius: 99px; border: 1.5px solid var(--border); background: var(--surface); font-weight: 600; font-size: 14px; transition: 0.2s; cursor: pointer; color: var(--text-muted); }
+.chip-label input:checked + .chip-box { border-color: var(--primary); background: var(--primary); color: #fff; }
+
+/* Student List */
+.student-list { display: flex; flex-direction: column; gap: 12px; }
+.student-row { padding: 16px; border-radius: var(--radius-md); background: var(--bg); border: 1px solid var(--border); }
+.student-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.student-name { font-weight: 700; font-size: 15px; }
+.student-num { background: var(--secondary); padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; color: #a37c00; }
+.remark-input { margin-top: 12px; display: none; }
+
+.btn { width: 100%; padding: 16px; border-radius: 99px; background: var(--primary); color: #fff; font-weight: 700; font-size: 16px; border: none; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 12px rgba(133,200,166,0.3); }
+.btn:hover { background: var(--primary-dark); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-outline { background: transparent; border: 2px solid var(--text-main); color: var(--text-main); box-shadow: none; margin-top: 16px; }
+.btn-outline:hover { background: rgba(0,0,0,0.05); }
+
+/* Dashboard Tables */
+.table-responsive { overflow-x: auto; margin-top: 16px; border-radius: var(--radius-md); border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; background: #fff; min-width: 600px; }
+th, td { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+th { background: var(--bg); font-weight: 700; white-space: nowrap; }
+.text-danger { color: #e53935; font-weight: 700; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+
+/* Overlays */
+.overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 1; transition: opacity 0.3s; }
+.overlay.hidden { opacity: 0; pointer-events: none; }
+.spinner { width: 40px; height: 40px; border: 4px solid var(--secondary); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+
+/* Custom Dialog Modal */
+.dialog-box { background: var(--surface); border-radius: var(--radius-lg); padding: 28px; width: min(100% - 32px, 360px); text-align: center; box-shadow: var(--shadow); transform: translateY(0); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.overlay.hidden .dialog-box { transform: translateY(20px); }
+.dialog-title { font-size: 20px; font-weight: 800; margin: 0 0 12px; color: var(--text-main); }
+.dialog-msg { font-size: 14.5px; color: var(--text-muted); margin: 0 0 24px; line-height: 1.5; white-space: pre-line; }
+.dialog-actions { display: flex; gap: 12px; }
+.dialog-actions .btn { margin: 0; padding: 14px; font-size: 15px; }
+.dialog-actions .btn-outline { margin: 0; border: 1.5px solid var(--border); border-radius: 99px; }
+
+/* Toast Notifications */
+.toast-container { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: max-content; max-width: 90%; }
+.toast { padding: 12px 24px; border-radius: 99px; font-size: 14px; font-weight: 700; color: #fff; text-align: center; box-shadow: 0 6px 16px rgba(0,0,0,0.15); animation: toastIn 0.3s ease forwards; }
+.toast.success { background: var(--primary-dark); }
+.toast.error { background: #e53935; }
+.toast.warning { background: #f57c00; color: #fff; }
+.toast.fade-out { animation: toastOut 0.3s ease forwards; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toastOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(20px); } }
+
+/* ---------------- Print Media for PDF ---------------- */
+@media print {
+  body { background: #fff; color: #000; }
+  .header, .tabs, .container > *:not(#printArea), .overlay, .btn, .toast-container { display: none !important; }
+  #printArea { display: block !important; width: 100%; }
+  #printArea table { border: 1px solid #000; width: 100%; border-collapse: collapse; }
+  #printArea th, #printArea td { border: 1px solid #000; padding: 8px; text-align: center; font-size: 12px; }
+  #printArea th:nth-child(2), #printArea td:nth-child(2) { text-align: left; }
+  #printArea h2, #printArea h3 { text-align: center; margin: 4px 0; }
+  @page { margin: 1cm; size: A4 portrait; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <h1>ระบบเช็กชื่อเข้าเรียน</h1>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('attendance')">เช็กชื่อเข้าเรียน</button>
+  <button class="tab" onclick="switchTab('dashboard')">รายงาน (Dashboard)</button>
+</div>
+
+<main class="container">
+  <!-- ================= TAB 1: Attendance ================= -->
+  <section id="view-attendance" class="view-section active">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">1. ตั้งค่าการสอน</h2>
+        <p class="card-subtitle">เลือกวิชา วันที่ และห้องเรียน</p>
+      </div>
+      
+      <div class="field-group">
+        <label class="label">รายวิชาที่สอน</label>
+        <div id="subjectChips" class="chip-scroll">
+          <div class="chip-box">กำลังโหลด...</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="field-group">
+          <label class="label">วันที่</label>
+          <input type="date" id="attendanceDate" class="input">
+        </div>
+        <div class="field-group">
+          <label class="label">จำนวนชั่วโมง</label>
+          <select id="hoursSelect" class="select">
+            <option value="1">1 ชั่วโมง</option>
+            <option value="2">2 ชั่วโมง</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="label">ระดับชั้น / ห้อง</label>
+        <select id="roomSelect" class="select" disabled>
+          <option value="">-- รอโหลดข้อมูล --</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card" id="studentCard" style="display: none;">
+      <div class="card-header">
+        <h2 class="card-title">2. เช็กชื่อนักเรียน</h2>
+        <p class="card-subtitle">ระบบตั้งค่า "มาเรียน" เป็นค่าเริ่มต้น</p>
+      </div>
+      <div id="studentListContainer" class="student-list"></div>
+      <button class="btn" id="saveBulkBtn" style="margin-top: 24px;" onclick="saveBulkAttendance()">บันทึกทั้งห้อง</button>
+    </div>
+  </section>
+
+  <!-- ================= TAB 2: Dashboard ================= -->
+  <section id="view-dashboard" class="view-section">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">ตัวกรองรายงาน</h2>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="field-group">
+          <label class="label">รายวิชา</label>
+          <select id="dashSubject" class="select"><option value="">-- ทุกรายวิชา --</option></select>
+        </div>
+        <div class="field-group">
+          <label class="label">ระดับชั้น / ห้อง</label>
+          <select id="dashRoom" class="select"><option value="">-- ทุกห้อง --</option></select>
+        </div>
+      </div>
+      <button class="btn" onclick="loadDashboard()">ดูรายงาน</button>
+      <button class="btn btn-outline" id="printBtn" onclick="printReport()" style="display: none; width: 100%;">พิมพ์รายงาน PDF (ทั้งห้อง)</button>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">รายชื่อนักเรียนที่ขาดเรียน</h2>
+      </div>
+      <div class="table-responsive">
+        <table id="absentTable">
+          <thead><tr><th>เลขที่</th><th>ชื่อ - นามสกุล</th><th>ขาดเรียน (ชม.)</th></tr></thead>
+          <tbody><tr><td colspan="3" class="empty-state">กรุณากด "ดูรายงาน"</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="printArea" style="display: none;"></div>
+
+<!-- Global Loading Overlay -->
+<div id="loadingOverlay" class="overlay">
+  <div class="spinner"></div>
+</div>
+
+<!-- Custom Dialog Overlay -->
+<div id="dialogOverlay" class="overlay hidden" style="z-index: 1500;">
+  <div class="dialog-box">
+    <h3 id="dialogTitle" class="dialog-title">แจ้งเตือน</h3>
+    <p id="dialogMsg" class="dialog-msg">ข้อความ</p>
+    <div class="dialog-actions">
+      <button id="dialogCancel" class="btn btn-outline" style="display:none;">ยกเลิก</button>
+      <button id="dialogConfirm" class="btn">ตกลง</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbyxB0K9dEHFoosOupyOTocppqkty0XSyPfoPl7-xaMOdqtRbhsB2iY_V2iRCOC5-hP9/exec'; 
+let globalData = { subjects: [], students: [], dashSummary: [] };
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('attendanceDate').value = new Date().toISOString().split('T')[0];
+  initApp();
+});
+
+const $ = id => document.getElementById(id);
+
+/* ----- Custom UI Components ----- */
+function showToast(message, type = 'success') {
+  const container = $('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('fade-out');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function showDialog(title, message, isConfirm = false) {
+  return new Promise((resolve) => {
+    $('dialogTitle').textContent = title;
+    $('dialogMsg').textContent = message;
+    $('dialogOverlay').classList.remove('hidden');
+    
+    const cancelBtn = $('dialogCancel');
+    const confirmBtn = $('dialogConfirm');
+    
+    cancelBtn.style.display = isConfirm ? 'block' : 'none';
+    
+    const handleConfirm = () => { closeDialog(); resolve(true); };
+    const handleCancel = () => { closeDialog(); resolve(false); };
+    
+    confirmBtn.onclick = handleConfirm;
+    cancelBtn.onclick = handleCancel;
+  });
+}
+
+function closeDialog() {
+  $('dialogOverlay').classList.add('hidden');
+}
+
+/* ----- App Logic ----- */
+function switchTab(tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+  $('view-' + tabId).classList.add('active');
+}
+
+function showLoading() { $('loadingOverlay').classList.remove('hidden'); }
+function hideLoading() { $('loadingOverlay').classList.add('hidden'); }
+
+// 1. โหลดข้อมูลเริ่มต้น
+async function initApp() {
+  try {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'init' }) }).then(r => r.json());
+    if (res.ok) {
+      globalData.subjects = res.subjects;
+      globalData.students = res.students;
+      renderSubjects();
+      populateRooms();
+    } else {
+      showToast('โหลดข้อมูลล้มเหลว', 'error');
+    }
+  } catch(e) {
+    showToast('เชื่อมต่อล้มเหลว กรุณารีเฟรชหน้าเว็บ', 'error');
+  }
+  hideLoading();
+}
+
+// เรนเดอร์วิชาแบบ Chips
+function renderSubjects() {
+  const container = $('subjectChips');
+  container.innerHTML = '';
+  
+  const dashSubj = $('dashSubject');
+  dashSubj.innerHTML = '<option value="">-- ทุกรายวิชา --</option>';
+
+  globalData.subjects.forEach((subj, idx) => {
+    const label = document.createElement('label');
+    label.className = 'chip-label';
+    label.innerHTML = `
+      <input type="radio" name="subjectId" value="${subj.subjectId}" ${idx===0?'checked':''}>
+      <div class="chip-box">${subj.subjectName}</div>
+    `;
+    container.appendChild(label);
+
+    const opt = document.createElement('option');
+    opt.value = subj.subjectId;
+    opt.textContent = subj.subjectName;
+    dashSubj.appendChild(opt);
+  });
+}
+
+// กรองและแสดงห้อง
+function populateRooms() {
+  const rooms = [...new Set(globalData.students.map(s => `${s.classLevel}${s.room ? '/' + s.room : ''}`))].filter(Boolean).sort();
+  
+  const roomSel = $('roomSelect');
+  const dashRoomSel = $('dashRoom');
+  roomSel.innerHTML = '<option value="">-- เลือกห้อง --</option>';
+  dashRoomSel.innerHTML = '<option value="">-- ทุกห้อง --</option>';
+
+  rooms.forEach(r => {
+    roomSel.appendChild(new Option(r, r));
+    dashRoomSel.appendChild(new Option(r, r));
+  });
+  roomSel.disabled = false;
+}
+
+// เมื่อเลือกห้อง -> แสดงรายชื่อทั้งห้อง
+$('roomSelect').addEventListener('change', (e) => {
+  const roomVal = e.target.value;
+  const container = $('studentListContainer');
+  container.innerHTML = '';
+  
+  if (!roomVal) {
+    $('studentCard').style.display = 'none';
+    return;
+  }
+
+  $('studentCard').style.display = 'block';
+  
+  const roomStudents = globalData.students
+    .filter(s => `${s.classLevel}${s.room ? '/' + s.room : ''}` === roomVal)
+    .sort((a,b) => a.number - b.number);
+
+  roomStudents.forEach(stu => {
+    const div = document.createElement('div');
+    div.className = 'student-row';
+    div.dataset.id = stu.studentId;
+    div.dataset.name = `${stu.firstName} ${stu.lastName}`;
+    div.dataset.level = stu.classLevel;
+    div.dataset.room = stu.room;
+    div.dataset.num = stu.number;
+
+    const statuses = ['มาเรียน', 'ขาดเรียน', 'ลากิจ', 'ลาป่วย', 'หนีเรียน'];
+    let statusHtml = '';
+    statuses.forEach(st => {
+      const isDefault = st === 'มาเรียน' ? 'checked' : '';
+      statusHtml += `
+        <label class="chip-label">
+          <input type="radio" name="st_${stu.studentId}" value="${st}" ${isDefault} onchange="toggleRemark('${stu.studentId}', this.value)">
+          <div class="chip-box" style="padding: 8px 12px; font-size: 13px;">${st}</div>
+        </label>
+      `;
+    });
+
+    div.innerHTML = `
+      <div class="student-header">
+        <div class="student-name">${stu.firstName} ${stu.lastName}</div>
+        <div class="student-num">เลขที่ ${stu.number}</div>
+      </div>
+      <div class="chip-scroll">${statusHtml}</div>
+      <input type="text" id="rem_${stu.studentId}" class="input remark-input" placeholder="ระบุเหตุผลการลากิจ...">
+    `;
+    container.appendChild(div);
+  });
+});
+
+function toggleRemark(studentId, val) {
+  const remInput = $(`rem_${studentId}`);
+  if (val === 'ลากิจ') {
+    remInput.style.display = 'block';
+    remInput.focus();
+  } else {
+    remInput.style.display = 'none';
+    remInput.value = '';
+  }
+}
+
+// 2. บันทึกข้อมูลทั้งห้อง
+async function saveBulkAttendance() {
+  const subjChecked = document.querySelector('input[name="subjectId"]:checked');
+  if (!subjChecked) return showToast('กรุณาเลือกรายวิชา', 'warning');
+
+  const rows = document.querySelectorAll('.student-row');
+  if (!rows.length) return showToast('ไม่พบรายชื่อนักเรียน', 'warning');
+
+  const records = [];
+  let errorMsg = '';
+
+  rows.forEach(row => {
+    const sid = row.dataset.id;
+    const status = document.querySelector(`input[name="st_${sid}"]:checked`).value;
+    const remark = $(`rem_${sid}`).value.trim();
+
+    if (status === 'ลากิจ' && !remark) {
+      errorMsg = `กรุณาระบุเหตุผลลากิจ สำหรับ\n${row.dataset.name}`;
+    }
+
+    records.push({
+      studentId: sid,
+      fullName: row.dataset.name,
+      classLevel: row.dataset.level,
+      room: row.dataset.room,
+      number: row.dataset.num,
+      status: status,
+      remark: remark
+    });
+  });
+
+  if (errorMsg) {
+    await showDialog('ข้อมูลไม่ครบถ้วน', errorMsg);
+    return;
+  }
+
+  const isConfirmed = await showDialog('ยืนยันการบันทึก', `ต้องการบันทึกข้อมูลนักเรียนห้องนี้\nจำนวน ${records.length} คน ใช่หรือไม่?`, true);
+  if (!isConfirmed) return;
+
+  showLoading();
+  const payload = {
+    action: 'saveBulk',
+    subjectId: subjChecked.value,
+    attendanceDate: $('attendanceDate').value,
+    hours: $('hoursSelect').value,
+    records: records
+  };
+
+  try {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }).then(r=>r.json());
+    if (res.ok) {
+      showToast(res.message, 'success');
+      $('roomSelect').value = '';
+      $('roomSelect').dispatchEvent(new Event('change'));
+      window.scrollTo(0,0);
+    } else {
+      await showDialog('เกิดข้อผิดพลาด', res.message);
+    }
+  } catch(e) {
+    showToast('เชื่อมต่อล้มเหลว', 'error');
+  }
+  hideLoading();
+}
+
+// 3. โหลดรายงาน Dashboard
+async function loadDashboard() {
+  showLoading();
+  const payload = {
+    action: 'getDashboard',
+    subjectId: $('dashSubject').value,
+    roomValue: $('dashRoom').value
+  };
+
+  try {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }).then(r=>r.json());
+    if (res.ok) {
+      globalData.dashSummary = res.data;
+      renderDashboardTable();
+      $('printBtn').style.display = globalData.dashSummary.length ? 'block' : 'none';
+      if (globalData.dashSummary.length > 0) {
+        showToast('โหลดข้อมูลรายงานสำเร็จ', 'success');
+      }
+    }
+  } catch(e) {
+    showToast('โหลดรายงานล้มเหลว', 'error');
+  }
+  hideLoading();
+}
+
+function renderDashboardTable() {
+  const tbody = document.querySelector('#absentTable tbody');
+  tbody.innerHTML = '';
+
+  const absentStudents = globalData.dashSummary.filter(s => s.stats['ขาดเรียน'] > 0);
+
+  if (!absentStudents.length) {
+    tbody.innerHTML = '<tr><td colspan="3" class="empty-state">ไม่พบนักเรียนที่ขาดเรียนในเงื่อนไขที่เลือก</td></tr>';
+    return;
+  }
+
+  absentStudents.forEach(stu => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${stu.number}</td>
+        <td>${stu.fullName} <br><small style="color:var(--text-muted)">${stu.room}</small></td>
+        <td class="text-danger">${stu.stats['ขาดเรียน']} ชม.</td>
+      </tr>
+    `;
+  });
+}
+
+// 4. พิมพ์รายงาน PDF
+function printReport() {
+  const roomFilter = $('dashRoom').value || 'ทุกห้อง';
+  const subjFilter = $('dashSubject').options[$('dashSubject').selectedIndex].text;
+  
+  let html = `
+    <h2>รายงานสรุปเวลาเรียน</h2>
+    <h3>วิชา: ${subjFilter} | ชั้นเรียน: ${roomFilter}</h3>
+    <table style="margin-top:20px;">
+      <thead>
+        <tr>
+          <th>เลขที่</th>
+          <th>ชื่อ - นามสกุล</th>
+          <th>มาเรียน</th>
+          <th>ลากิจ</th>
+          <th>ลาป่วย</th>
+          <th>ขาดเรียน</th>
+          <th>หนีเรียน</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  globalData.dashSummary.forEach(stu => {
+    html += `
+      <tr>
+        <td>${stu.number}</td>
+        <td>${stu.fullName}</td>
+        <td>${stu.stats['มาเรียน'] || 0}</td>
+        <td>${stu.stats['ลากิจ'] || 0}</td>
+        <td>${stu.stats['ลาป่วย'] || 0}</td>
+        <td>${stu.stats['ขาดเรียน'] || 0}</td>
+        <td>${stu.stats['หนีเรียน'] || 0}</td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table>`;
+  
+  $('printArea').innerHTML = html;
+  window.print();
+}
+</script>
+</body>
+</html>
